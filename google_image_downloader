@@ -1,0 +1,52 @@
+import requests
+from bs4 import BeautifulSoup
+import os
+
+def download_images(url, folder_name='google_images'):
+    """
+    Downloads all images from a web page into a specific folder named 'google_images'.
+    Args:
+        url (str): The URL of the webpage to scrape.
+        folder_name (str): The name of the folder where images will be saved, defaulted to 'google_images'.
+    """
+    # Create a directory for the images if it doesn't exist
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+
+    # Send a GET request to the URL
+    response = requests.get(url)
+    # Check if the request was successful
+    if response.status_code != 200:
+        print('Failed to retrieve the webpage')
+        return
+
+    # Parse the HTML content of the page
+    soup = BeautifulSoup(response.text, 'html.parser')
+    
+    # Find all image tags, Wikimedia Commons uses <img> tags within the content
+    images = soup.find_all('img')
+    
+    # Loop over all found images
+    for img in images:
+        # Get the 'src' attribute of the image tag
+        src = img.get('src')
+        
+        # Complete the src with the base URL if needed
+        if not src.startswith('http'):
+            src = 'https:' + src  # Adding https to the relative URL
+        
+        # Get the image content
+        img_response = requests.get(src)
+        
+        # Create a file path with the image's name in the specified folder
+        img_path = os.path.join(folder_name, src.split('/')[-1])
+        
+        # Write the image content to a file
+        with open(img_path, 'wb') as file:
+            file.write(img_response.content)
+    
+    print('Images downloaded successfully.')
+
+# Example usage with a Wikimedia Commons page URL
+download_images('https://commons.wikimedia.org/wiki/Category:Featured_pictures_on_Wikimedia_Commons', 'google_images')
+
